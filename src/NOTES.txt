@@ -1,0 +1,76 @@
+Logs from Web IDE and web console of the web IDE
+
+
+file_base_name="neopixelRpmsg.pru0";debug="false";file_path="/var/lib/cloud9/BeagleBone/Black/pru";
+printf '\033[1mCompiling /var/lib/cloud9/BeagleBone/Black/pru/neopixelRpmsg.pru0.c ...\033[m
+' ; set -e
+make "$file_base_name"
+if [ "$debug" == true ]; then
+node $HOME/.c9/bin/c9gdbshim.js "$file_path/$file_base_name"
+else
+chmod 755 "$file_path/$file_base_name"
+"$file_path/$file_base_name"
+fi
+
+
+
+printf '\033[1mStarted /var/lib/cloud9/: neopixelRpmsg.pru0.c
+File path: /var/lib/cloud9/BeagleBone/Black/pru
+File: /var/lib/cloud9/BeagleBone/Black/pru/neopixelRpmsg.pru0.c
+Arguments:
+File name: neopixelRpmsg.pru0.c
+File extension: c
+File base name: neopixelRpmsg.pru0
+Packages: ~.c9/packages
+Project path: /var/lib/cloud9/
+Project name: projectname
+Hostname: localhost
+Hostname path: https://undefined/BeagleBone/Black/pru/neopixelRpmsg.pru0.c
+URL: http://localhost
+Port: 8080
+IP: 0.0.0.0
+Command: BeagleBone/Black/pru/neopixelRpmsg.pru0.c
+Python: python3
+Python path: /usr/lib/python3.7/dist-packages:/usr/local/lib/python3.7/dist-packages\033[m
+' ; export MYPORT='8080'; "make" "-f" "/var/lib/cloud9/common/Makefile" "TARGET=neopixelRpmsg.pru0"
+
+
+
+
+make MODEL=TI_AM335x_BeagleBone_Black,TARGET=cc neopixelRpmsg.pru0.c -o neopixelRpmsg.pru0
+
+
+
+
+Started /var/lib/cloud9/: hambone-display.pru0.c
+File path: /var/lib/cloud9/BeagleBone/Black/pru
+File: /var/lib/cloud9/BeagleBone/Black/pru/hambone-display.pru0.c
+Arguments:
+File name: hambone-display.pru0.c
+File extension: c
+File base name: hambone-display.pru0
+Packages: ~.c9/packages
+Project path: /var/lib/cloud9/
+Project name: projectname
+Hostname: localhost
+Hostname path: https://undefined/BeagleBone/Black/pru/hambone-display.pru0.c
+URL: http://localhost
+Port: 8080
+IP: 0.0.0.0
+Command: BeagleBone/Black/pru/hambone-display.pru0.c
+Python: python3
+Python path: /usr/lib/python3.7/dist-packages:/usr/local/lib/python3.7/dist-packages
+/var/lib/cloud9/common/Makefile:28: MODEL=TI_AM335x_BeagleBone_Black,TARGET=hambone-display.pru0
+-    Stopping PRU 0
+CC      hambone-display.pru0.c
+"/var/lib/cloud9/common/prugpio.h", line 55: warning #1181-D: #warning directive: "Found am335x"
+LD      /tmp/cloud9-examples/hambone-display.pru0.o
+-       copying firmware file /tmp/cloud9-examples/hambone-display.pru0.out to /lib/firmware/am335x-pru0-fw
+write_init_pins.sh
+writing "pruout" to "/sys/devices/platform/ocp/ocp:P9_29_pinmux/state"
+-    Starting PRU 0
+MODEL   = TI_AM335x_BeagleBone_Black
+PROC    = pru
+PRUN    = 0
+PRU_DIR = /sys/class/remoteproc/remoteproc1
+rm /tmp/cloud9-examples/hambone-display.pru0.o
