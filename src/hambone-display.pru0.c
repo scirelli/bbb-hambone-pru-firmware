@@ -25,7 +25,7 @@ Data Transfer time (TH+TL=1.25μs +-600ns) (WS2812)
 ┠────────────────────┼───────────────────────────────────┼────────────────────┼────────────────────┨
 ┃  T0L               │ 0 code, low voltage time          │ 0.8μs              │ +-150ns            ┃
 ┠────────────────────┼───────────────────────────────────┼────────────────────┼────────────────────┨
-┃  T0L               │ 1 code, low voltage time          │ 0.6μs              │ +-150ns            ┃
+┃  T1L               │ 1 code, low voltage time          │ 0.6μs              │ +-150ns            ┃
 ┠────────────────────┼───────────────────────────────────┼────────────────────┼────────────────────┨
 ┃  RES               │ low voltage time                  │ Above 50μs         │                    ┃
 ┗━━━━━━━━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━━━┛
@@ -38,10 +38,37 @@ Data Transfer time (TH+TL=1.25μs +-600ns) (WS2812B)
 ┠────────────────────┼───────────────────────────────────┼────────────────────┼────────────────────┨
 ┃  T0L               │ 0 code, low voltage time          │ 0.85μs             │ +-150ns            ┃
 ┠────────────────────┼───────────────────────────────────┼────────────────────┼────────────────────┨
-┃  T0L               │ 1 code, low voltage time          │ 0.45μs             │ +-150ns            ┃
+┃  T1L               │ 1 code, low voltage time          │ 0.45μs             │ +-150ns            ┃
 ┠────────────────────┼───────────────────────────────────┼────────────────────┼────────────────────┨
 ┃  RES               │ low voltage time                  │ Above 50μs         │                    ┃
 ┗━━━━━━━━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━━━┛
+
+Data Transfer time (TH+TL=1.25μs +-600ns) (SK6812 RGB)
+┏━━━━━━━━━━━━━━━━━━━━┯━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┯━━━━━━━━━━━━━━━━━━━━┯━━━━━━━━━━━━━━━━━━━━┓
+┃  T0H               │ 0 code, high voltage time         │ 0.3μs              │ +-150ns            ┃
+┠────────────────────┼───────────────────────────────────┼────────────────────┼────────────────────┨
+┃  T1H               │ 1 code, high voltage time         │ 0.6μs              │ +-150ns            ┃
+┠────────────────────┼───────────────────────────────────┼────────────────────┼────────────────────┨
+┃  T0L               │ 0 code, low voltage time          │ 0.9μs              │ +-150ns            ┃
+┠────────────────────┼───────────────────────────────────┼────────────────────┼────────────────────┨
+┃  T1L               │ 1 code, low voltage time          │ 0.6μs              │ +-150ns            ┃
+┠────────────────────┼───────────────────────────────────┼────────────────────┼────────────────────┨
+┃  RES               │ low voltage time                  │ Above 80μs         │                    ┃
+┗━━━━━━━━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━━━┛
+
+Data Transfer time (TH+TL=1.25μs +-600ns) (SK6812 RGBW)
+┏━━━━━━━━━━━━━━━━━━━━┯━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┯━━━━━━━━━━━━━━━━━━━━┯━━━━━━━━━━━━━━━━━━━━┓
+┃  T0H               │ 0 code, high voltage time         │ 0.3μs              │ +-150ns            ┃
+┠────────────────────┼───────────────────────────────────┼────────────────────┼────────────────────┨
+┃  T1H               │ 1 code, high voltage time         │ 0.6μs              │ +-150ns            ┃
+┠────────────────────┼───────────────────────────────────┼────────────────────┼────────────────────┨
+┃  T0L               │ 0 code, low voltage time          │ 0.9μs              │ +-150ns            ┃
+┠────────────────────┼───────────────────────────────────┼────────────────────┼────────────────────┨
+┃  T1L               │ 1 code, low voltage time          │ 0.6μs              │ +-150ns            ┃
+┠────────────────────┼───────────────────────────────────┼────────────────────┼────────────────────┨
+┃  RES               │ low voltage time                  │ Above 80μs         │                    ┃
+┗━━━━━━━━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━━━┛
+
 
 Sequence Chart
          ┏━━━━━━━━━┓     T0L    ┃
@@ -134,10 +161,19 @@ Note: Follow the order of GRB to sent data and the high bit sent at first. Big-e
 
 #define STR_LEN             42                          // Number of pixels
 #define NANO_SEC_PER_CYCLE  5
-#define	oneCyclesOn		    700/NANO_SEC_PER_CYCLE	    // Stay on for 700ns
-#define oneCyclesOff	    600/NANO_SEC_PER_CYCLE
-#define zeroCyclesOn	    350/NANO_SEC_PER_CYCLE
-#define zeroCyclesOff   	800/NANO_SEC_PER_CYCLE
+
+/*
+#define zeroCyclesOn	    350/NANO_SEC_PER_CYCLE      // T0H
+#define	oneCyclesOn		    700/NANO_SEC_PER_CYCLE	    // T1H Stay on for 700ns
+#define zeroCyclesOff   	800/NANO_SEC_PER_CYCLE      // T0L
+#define oneCyclesOff	    600/NANO_SEC_PER_CYCLE      // T1L
+#define resetCycles		    70000/NANO_SEC_PER_CYCLE    // Must be at least 50u, use 51u. 70us seems to be the sweet spot
+*/
+
+#define zeroCyclesOn	    350/NANO_SEC_PER_CYCLE      // T0H
+#define	oneCyclesOn		    700/NANO_SEC_PER_CYCLE	    // T1H Stay on for 700ns
+#define zeroCyclesOff   	850/NANO_SEC_PER_CYCLE      // T0L
+#define oneCyclesOff	    525/NANO_SEC_PER_CYCLE      // T1L
 #define resetCycles		    70000/NANO_SEC_PER_CYCLE    // Must be at least 50u, use 51u. 70us seems to be the sweet spot
 
 #define PREDEFINED_SEGMENT_COUNT 4
