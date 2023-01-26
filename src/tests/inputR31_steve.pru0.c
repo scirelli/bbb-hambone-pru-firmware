@@ -232,6 +232,7 @@ void main(void) {
             /* Receive all available messages, multiple messages can be sent per kick */
             pru_rpmsg_send(&transport, src, dst, &payload, len);
         }
+        __delay_cycles(FIVE_SECONDS);
 
 		if(__R31 & P9_25) {
             gpio1[GPIO_SETDATAOUT]   = USR3;      // Turn on LED
