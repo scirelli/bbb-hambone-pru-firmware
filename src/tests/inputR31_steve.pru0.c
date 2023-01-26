@@ -115,7 +115,7 @@ volatile register unsigned int __R31; // Input register
 // 0x100 for the STACK and 0x100 for the HEAP.
 volatile unsigned int *pru0_dram = (unsigned int *) (PRU0_DRAM + 0x200);
 
-char payload[RPMSG_BUF_SIZE] = "TEST STEVE";
+char payload[] = "STEVE TEST";
 
 void ccw(void);
 void cw(void);
@@ -124,8 +124,10 @@ void stop(void);
 
 void main(void) {
 	struct pru_rpmsg_transport transport;
-	uint16_t src = 1024, dst = 30, len=7;
+	uint16_t src = 1024, dst = 30, len=5;
+    int i=0;
 	volatile uint8_t *status;
+    bool fired=true;
 
 	uint32_t *gpio1 = (uint32_t *)GPIO1;
 
@@ -226,13 +228,22 @@ void main(void) {
             );
         */
         /* Check bit 30 of register R31 to see if the ARM has kicked us */
-        if (__R31 & HOST_INT) {
-            /* Clear the event status */
-            CT_INTC.SICR_bit.STS_CLR_IDX = FROM_ARM_HOST;
-            /* Receive all available messages, multiple messages can be sent per kick */
-            pru_rpmsg_send(&transport, src, dst, &payload, len);
-        }
-        __delay_cycles(FIVE_SECONDS);
+        /* if (__R31 & HOST_INT) { */
+        /*     if(!fired) { */
+        /*         /1* Receive all available messages, multiple messages can be sent per kick *1/ */
+        /*         payload[0]= 65+(i++%26); */
+        /*         pru_rpmsg_send(&transport, dst, src, payload, len); */
+        /*         fired = true; */
+			/* } else{ */
+				/* fired = false; */
+			/* } */
+        /*     /1* Clear the event status *1/ */
+        /*     CT_INTC.SICR_bit.STS_CLR_IDX = FROM_ARM_HOST; */
+        /* } */
+        payload[0]= 65+(i++%26);
+        pru_rpmsg_send(&transport, dst, src, payload, len);
+        CT_INTC.SICR_bit.STS_CLR_IDX = FROM_ARM_HOST;
+		__delay_cycles(200000000);
 
 		if(__R31 & P9_25) {
             gpio1[GPIO_SETDATAOUT]   = USR3;      // Turn on LED
