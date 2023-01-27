@@ -189,7 +189,7 @@ void main(void) {
 
     // Write some data to shared mem. Will attempt to read this in Python
     pru0_dram[0] = 0xBEFFAEED;
-
+    stop();
 	while(1) {
         /**
         * Summary		:	pru_rpmsg_send sends a message to the ARM host using the
@@ -253,8 +253,10 @@ void main(void) {
                 payload[0]= 65+(i++%26);
                 pru_rpmsg_send(&transport, dst, src, payload, len);
                 gpio1[GPIO_SETDATAOUT]   = USR3;      // Turn on LED
+                ccw();
             } else {
                 gpio1[GPIO_CLEARDATAOUT] = USR3;      // Turn off LED
+                stop();
             }
         }
 
@@ -265,8 +267,10 @@ void main(void) {
                 payload[0]= 65+(i++%26);
                 pru_rpmsg_send(&transport, dst, src, payload, len);
                 gpio1[GPIO_SETDATAOUT]   = USR1;      // Turn on LED
+                cw();
             } else {
                 gpio1[GPIO_CLEARDATAOUT] = USR1;      // Turn off LED
+                stop();
             }
         }
         // Test motor
