@@ -124,10 +124,10 @@ void stop(void);
 
 void main(void) {
 	struct pru_rpmsg_transport transport;
-	uint16_t src = 1024, dst = 30, len=6;
+	uint16_t src = 1024, dst = CHAN_PORT, len=6;
     int i=0;
 	volatile uint8_t *status;
-    bool fired=true;
+    //bool fired=true;
     unsigned int prevButState1 = 0, prevButState2 = 0, butState = 0;
 
 	uint32_t *gpio1 = (uint32_t *)GPIO1;
