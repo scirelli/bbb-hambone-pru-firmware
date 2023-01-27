@@ -115,7 +115,7 @@ volatile register unsigned int __R31; // Input register
 // 0x100 for the STACK and 0x100 for the HEAP.
 volatile unsigned int *pru0_dram = (unsigned int *) (PRU0_DRAM + 0x200);
 
-char payload[] = "STEVE TEST";
+char payload[] = "STEVE\nTEST";
 
 void ccw(void);
 void cw(void);
@@ -124,10 +124,11 @@ void stop(void);
 
 void main(void) {
 	struct pru_rpmsg_transport transport;
-	uint16_t src = 1024, dst = 30, len=5;
+	uint16_t src = 1024, dst = 30, len=6;
     int i=0;
 	volatile uint8_t *status;
     bool fired=true;
+    unsigned int prevButState1 = 0, prevButState2 = 0, butState = 0;
 
 	uint32_t *gpio1 = (uint32_t *)GPIO1;
 
@@ -240,21 +241,33 @@ void main(void) {
         /*     /1* Clear the event status *1/ */
         /*     CT_INTC.SICR_bit.STS_CLR_IDX = FROM_ARM_HOST; */
         /* } */
-        payload[0]= 65+(i++%26);
-        pru_rpmsg_send(&transport, dst, src, payload, len);
-        CT_INTC.SICR_bit.STS_CLR_IDX = FROM_ARM_HOST;
-		__delay_cycles(200000000);
+        /* payload[0]= 65+(i++%26); */
+        /* pru_rpmsg_send(&transport, dst, src, payload, len); */
+        //CT_INTC.SICR_bit.STS_CLR_IDX = FROM_ARM_HOST;
+		/* __delay_cycles(200000000); */
 
-		if(__R31 & P9_25) {
-            gpio1[GPIO_SETDATAOUT]   = USR3;      // Turn on LED
-        } else {
-            gpio1[GPIO_CLEARDATAOUT] = USR3;      // Turn off LED
+        butState = __R31 & P9_25;
+		if(butState != prevButState1) {
+            prevButState1 = butState;
+            if(butState) {
+                payload[0]= 65+(i++%26);
+                pru_rpmsg_send(&transport, dst, src, payload, len);
+                gpio1[GPIO_SETDATAOUT]   = USR3;      // Turn on LED
+            } else {
+                gpio1[GPIO_CLEARDATAOUT] = USR3;      // Turn off LED
+            }
         }
 
-		if(__R31 & P9_27) {
-            gpio1[GPIO_SETDATAOUT]   = USR1;      // Turn on LED
-        } else {
-            gpio1[GPIO_CLEARDATAOUT] = USR1;      // Turn off LED
+        butState = __R31 & P9_27;
+		if(butState != prevButState2) {
+            prevButState2 = butState;
+            if(butState) {
+                payload[0]= 65+(i++%26);
+                pru_rpmsg_send(&transport, dst, src, payload, len);
+                gpio1[GPIO_SETDATAOUT]   = USR1;      // Turn on LED
+            } else {
+                gpio1[GPIO_CLEARDATAOUT] = USR1;      // Turn off LED
+            }
         }
         // Test motor
         /* stop(); */
