@@ -428,6 +428,7 @@ void main(void) {
     /* Receive all available messages, multiple messages can be sent per kick */
 	/* Create the RPMsg channel between the PRU and ARM user space using the transport structure. */
 	while (pru_rpmsg_channel(RPMSG_NS_CREATE, &transport, CHAN_RX_NAME, CHAN_RX_DESC, CHAN_RX_PORT) != PRU_RPMSG_SUCCESS);
+	while (pru_rpmsg_channel(RPMSG_NS_CREATE, &transport, CHAN_TX_NAME, CHAN_TX_DESC, CHAN_TX_PORT) != PRU_RPMSG_SUCCESS);
 	while (1) {
 		/* Check bit 30 of register R31 to see if the ARM has kicked us */
 		if (__R31 & HOST_INT) {
