@@ -387,8 +387,8 @@ int8_t convergeFactor(uint8_t a, uint8_t b);
 //======================
 // Motor Driver Globals
 //======================
-void motorCCw(void);
-void motorCw(void);
+void motorCCw(/*double dutyCycle*/ void);
+void motorCw(/*double dutyCycle*/ void);
 void motorBrake(void);
 void motorStop(void);
 //======================
@@ -402,10 +402,10 @@ void main(void) {
 	uint8_t r, g, b;
 	uint16_t srcRX, dstRX, lenRX;
     uint32_t colr;
-    unsigned int prevButState1 = 0, prevButState2 = 0, butState = 0;
+    unsigned int prevButState1 = 0, prevButState2 = 0, butState = 0; //TODO: use one byte and flags
 	int i, k=0;
-    int motorState = MOTOR_STOP;
-    int index, code, dc;	// index of LED to control
+    int motorState = MOTOR_STOP; //TODO: use a btye
+    int code;	// Command code or index of LED to control
     char *rest;	// rest of payload after front character is removed
 
     initColors();
@@ -421,6 +421,7 @@ void main(void) {
 	status = &resourceTable.rpmsg_vdev.status;
 	while (!(*status & VIRTIO_CONFIG_S_DRIVER_OK));
 
+    //TODO: Try creating another transport and channel etc. Right now msgs are being sent to the same rpmsg_pru30 file.
 	/* Initialize the RPMsg transport structure */
 	pru_rpmsg_init(&transport, &resourceTable.rpmsg_vring0, &resourceTable.rpmsg_vring1, TO_ARM_HOST, FROM_ARM_HOST);
 
@@ -452,13 +453,13 @@ void main(void) {
                     break;
                 case CODE_MOTOR:                                        // Motor MSG: Perform motor movements
                     // Input format is:  [MOTOR_STOP, MOTOR_BRAKE, MOTOR_CW, MOTOR_CCW] [dutyCycle]
-                    motorState = atoi(&rest[1], NULL, 0);
-                    rest = strchr(&rest[1], ' ');	// Skip over dir, etc.
-                    dc = atof(&rest[1], NULL, 0);   // duty cycle is optional so if it's zero we'll ignore it.
+                    motorState = atoi(&rest[1]);
+                    //rest = strchr(&rest[1], ' ');	// Skip over dir, etc.
+                    //dc = atof(&rest[1]);   // duty cycle is optional so if it's zero we'll ignore it.
                     break;
                 default:                                                // All others are NeoPixel Pixel Index
-                    index  = code;
-                    if(index < 0 || index > INDEX_DEFAULT_SEGMENT_END) continue;
+                    code = code;
+                    if(code < 0 || code > INDEX_DEFAULT_SEGMENT_END) continue;
 
                     // Input format is:  index red green blue
                     r = strtol(&rest[1], NULL, 0);
@@ -468,12 +469,12 @@ void main(void) {
                     b = strtol(&rest[1], NULL, 0);
                     colr = PACK_COLOR(r, g, b);	// String wants GRB
 
-                    if((index >= 0) & (index < STR_LEN)) {                      // Codes to write to pixel buffer. Update the array, but don't write/draw it out.
-                        color[index] = destColor[index] = colr;
-                    }else if(index >= INDEX_DESTINATION_BUFFER_WRITE_START && index <= INDEX_DESTINATION_BUFFER_WRITE_END) {   // Codes to write to destination buffer only
-                        destColor[index-INDEX_DESTINATION_BUFFER_WRITE_START] = colr;
-                    } else if (index >= INDEX_DEFAULT_SEGMENT_START && index <= INDEX_DEFAULT_SEGMENT_END) {  // Codes to write to default segments
-                        for(i=segments[index - INDEX_DEFAULT_SEGMENT_START][START]; i<=segments[index - INDEX_DEFAULT_SEGMENT_START][END]; i++) {
+                    if((code >= 0) & (code < STR_LEN)) {                      // Codes to write to pixel buffer. Update the array, but don't write/draw it out.
+                        color[code] = destColor[code] = colr;
+                    }else if(code >= INDEX_DESTINATION_BUFFER_WRITE_START && code <= INDEX_DESTINATION_BUFFER_WRITE_END) {   // Codes to write to destination buffer only
+                        destColor[code-INDEX_DESTINATION_BUFFER_WRITE_START] = colr;
+                    } else if (code >= INDEX_DEFAULT_SEGMENT_START && code <= INDEX_DEFAULT_SEGMENT_END) {  // Codes to write to default segments
+                        for(i=segments[code - INDEX_DEFAULT_SEGMENT_START][START]; i<=segments[code - INDEX_DEFAULT_SEGMENT_START][END]; i++) {
                             destColor[i] = colr;
                         }
                     }
@@ -487,9 +488,9 @@ void main(void) {
             if(butState) {
                 motorBrake();
                 motorState = MOTOR_BRAKE;
-                //pru_rpmsg_send(&transport, TX_DST_ADDR, TX_SRC_ADDR, LIMIT_SWITCH_ONE_PRESSED, LS_MSG_LEN);
+                pru_rpmsg_send(&transport, TX_DST_ADDR, TX_SRC_ADDR, LIMIT_SWITCH_ONE_PRESSED, LS_MSG_LEN);
             } else {
-                //pru_rpmsg_send(&transport, TX_DST_ADDR, TX_SRC_ADDR, LIMIT_SWITCH_ONE_RELEASED, LS_MSG_LEN);
+                pru_rpmsg_send(&transport, TX_DST_ADDR, TX_SRC_ADDR, LIMIT_SWITCH_ONE_RELEASED, LS_MSG_LEN);
             }
         }
 
@@ -499,33 +500,35 @@ void main(void) {
             if(butState) {
                 motorBrake();
                 motorState = MOTOR_BRAKE;
-                //pru_rpmsg_send(&transport, TX_DST_ADDR, TX_SRC_ADDR, LIMIT_SWITCH_ONE_PRESSED, LS_MSG_LEN);
+                pru_rpmsg_send(&transport, TX_DST_ADDR, TX_SRC_ADDR, LIMIT_SWITCH_ONE_PRESSED, LS_MSG_LEN);
             } else {
-                //pru_rpmsg_send(&transport, TX_DST_ADDR, TX_SRC_ADDR, LIMIT_SWITCH_ONE_RELEASED, LS_MSG_LEN);
+                pru_rpmsg_send(&transport, TX_DST_ADDR, TX_SRC_ADDR, LIMIT_SWITCH_ONE_RELEASED, LS_MSG_LEN);
             }
         }
 
         switch(motorState) {
             case MOTOR_STOP:
+                motorStop();
                 break;
             case MOTOR_BRAKE:
                 motorBrake();
                 break;
             case MOTOR_CW:
-                motorCW();
+                motorCw();
                 break;
             case MOTOR_CCW:
-                motorCCW();
+                motorCCw();
                 break;
             default:
-                stop();
+                motorStop();
         }
 	}
 }
 
 void initColors(void){
+    int i;
 	// Set everything to background
-	for(int i=0; i<STR_LEN; i++) {
+	for(i=0; i<STR_LEN; i++) {
 		color[i] = destColor[i] = 0x000000;
 	}
 }
@@ -591,13 +594,13 @@ int8_t convergeFactor(uint8_t a, uint8_t b) {
    return dif;
 }
 
-void motorCCw(void) {
+void motorCCw(/*double dutyCycle*/ void) {
     __R30 = LOW(MOTOR_A11);
     __R30 = HIGH(MOTOR_A12);
     __R30 = HIGH(MOTOR_PWM);
 }
 
-void motorCw(void){
+void motorCw(/*double dutyCycle*/ void){
     __R30 = HIGH(MOTOR_A11);
     __R30 = LOW(MOTOR_A12);
     __R30 = HIGH(MOTOR_PWM);
