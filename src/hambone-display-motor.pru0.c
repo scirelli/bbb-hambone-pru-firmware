@@ -14,6 +14,8 @@
 //  Refernce:
 //  * http://cdn.sparkfun.com/datasheets/Components/LED/WS2812.pdf or https://cdn-shop.adafruit.com/datasheets/WS2812.pdf
 //  * https://cdn-shop.adafruit.com/datasheets/WS2812B.pdf
+//  * https://software-dl.ti.com/processor-sdk-linux/esd/docs/latest/linux/Foundational_Components_PRU-ICSS_PRU_ICSSG.html
+//  * https://git.ti.com/cgit/pru-software-support-package/pru-software-support-package/tree/include?id=aa9606013059eb8728bcc1165c5032f0589469e0
 
 /* ******************* NOTES *************************************************************************************
 WS2812 and WS2812B have slightly different times. Other versions do as well.
@@ -270,8 +272,8 @@ int16_t pru_rpmsg_send (
 #define CHAN_TX_NAME	"rpmsg-pru"
 #define CHAN_TX_DESC	"Channel 31"
 #define CHAN_TX_PORT	31
-#define TX_SRC_ADDR     ((uint16_t)1024)
-#define TX_DST_ADDR     ((uint16_t)(CHAN_TX_PORT))
+#define TX_DST_ADDR     ((uint16_t)1025)
+#define TX_SRC_ADDR     ((uint16_t)(CHAN_TX_PORT))
 
 /*
  * Used to make sure the Linux drivers are ready for RPMsg communication
@@ -404,7 +406,7 @@ void main(void) {
     uint32_t colr;
     unsigned int prevButState1 = 0, prevButState2 = 0, butState = 0; //TODO: use one byte and flags
 	int i, k=0;
-    int motorState = MOTOR_STOP; //TODO: use a btye
+    int motorState = MOTOR_STOP, prevMotorState = MOTOR_STOP; //TODO: use a btye
     int code;	// Command code or index of LED to control
     char *rest;	// rest of payload after front character is removed
 
@@ -421,12 +423,11 @@ void main(void) {
 	status = &resourceTable.rpmsg_vdev.status;
 	while (!(*status & VIRTIO_CONFIG_S_DRIVER_OK));
 
-    //TODO: Try creating another transport and channel etc. Right now msgs are being sent to the same rpmsg_pru30 file.
 	/* Initialize the RPMsg transport structure */
 	pru_rpmsg_init(&transport, &resourceTable.rpmsg_vring0, &resourceTable.rpmsg_vring1, TO_ARM_HOST, FROM_ARM_HOST);
 
     /* Receive all available messages, multiple messages can be sent per kick */
-	/* Create the RPMsg channel between the PRU and ARM user space using the transport structure. */
+	/* Create the RPMsg channel between the PRU and ARM user space using the transport structure. https://git.ti.com/cgit/pru-software-support-package/pru-software-support-package/tree/include/pru_rpmsg.h?id=aa9606013059eb8728bcc1165c5032f0589469e0 */
 	while (pru_rpmsg_channel(RPMSG_NS_CREATE, &transport, CHAN_RX_NAME, CHAN_RX_DESC, CHAN_RX_PORT) != PRU_RPMSG_SUCCESS);
 	while (pru_rpmsg_channel(RPMSG_NS_CREATE, &transport, CHAN_TX_NAME, CHAN_TX_DESC, CHAN_TX_PORT) != PRU_RPMSG_SUCCESS);
 	while (1) {
@@ -459,7 +460,6 @@ void main(void) {
                     //dc = atof(&rest[1]);   // duty cycle is optional so if it's zero we'll ignore it.
                     break;
                 default:                                                // All others are NeoPixel Pixel Index
-                    code = code;
                     if(code < 0 || code > INDEX_DEFAULT_SEGMENT_END) continue;
 
                     // Input format is:  index red green blue
@@ -489,9 +489,9 @@ void main(void) {
             if(butState) {
                 motorBrake();
                 motorState = MOTOR_BRAKE;
-                pru_rpmsg_send(&transport, TX_DST_ADDR, TX_SRC_ADDR, LIMIT_SWITCH_ONE_PRESSED, LS_MSG_LEN);
+                pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, LIMIT_SWITCH_ONE_PRESSED, LS_MSG_LEN);
             } else {
-                pru_rpmsg_send(&transport, TX_DST_ADDR, TX_SRC_ADDR, LIMIT_SWITCH_ONE_RELEASED, LS_MSG_LEN);
+                pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, LIMIT_SWITCH_ONE_RELEASED, LS_MSG_LEN);
             }
         }
 
@@ -501,27 +501,35 @@ void main(void) {
             if(butState) {
                 motorBrake();
                 motorState = MOTOR_BRAKE;
-                pru_rpmsg_send(&transport, TX_DST_ADDR, TX_SRC_ADDR, LIMIT_SWITCH_ONE_PRESSED, LS_MSG_LEN);
+                pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, LIMIT_SWITCH_TWO_PRESSED, LS_MSG_LEN);
             } else {
-                pru_rpmsg_send(&transport, TX_DST_ADDR, TX_SRC_ADDR, LIMIT_SWITCH_ONE_RELEASED, LS_MSG_LEN);
+                pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, LIMIT_SWITCH_TWO_RELEASED, LS_MSG_LEN);
             }
         }
 
-        switch(motorState) {
-            case MOTOR_STOP:
-                motorStop();
-                break;
-            case MOTOR_BRAKE:
-                motorBrake();
-                break;
-            case MOTOR_CW:
-                motorCw();
-                break;
-            case MOTOR_CCW:
-                motorCCw();
-                break;
-            default:
-                motorStop();
+        if(motorState != prevMotorState) { // This will need to be changed if PWM is needed for motor speed. This code assumes full speed all the time.
+            switch(motorState) {
+                case MOTOR_STOP:
+                    motorStop();
+                    pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, "MS\n", 3);
+                    break;
+                case MOTOR_BRAKE:
+                    motorBrake();
+                    pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, "MB\n", 3);
+                    break;
+                case MOTOR_CW:
+                    motorCw();
+                    pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, "MCw\n", 4);
+                    break;
+                case MOTOR_CCW:
+                    motorCCw();
+                    pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, "MCCw\n", 5);
+                    break;
+                default:
+                    motorStop();
+                    pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, "UNK\n", 4);
+            }
+            prevMotorState = motorState;
         }
 	}
 }
