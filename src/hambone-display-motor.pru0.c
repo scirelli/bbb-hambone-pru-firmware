@@ -268,6 +268,8 @@ int16_t pru_rpmsg_send (
 #define CHAN_RX_NAME	"rpmsg-pru"
 #define CHAN_RX_DESC	"Channel 30"
 #define CHAN_RX_PORT	30
+#define RX_DST_ADDR     ((uint16_t)1024)
+#define RX_SRC_ADDR     ((uint16_t)(CHAN_RX_PORT))
 
 #define CHAN_TX_NAME	"rpmsg-pru"
 #define CHAN_TX_DESC	"Channel 31"
@@ -284,8 +286,14 @@ int16_t pru_rpmsg_send (
 #define PRU0_DRAM		0x00000			// Offset to DRAM
 
 #define NANO_SEC_PER_CYCLE  5
+#define MILLISECOND_PER_NANOSECOND 1e6
+#define MICROSECOND_PER_NANOSECOND 1e3
 #define NANOSECOND_PER_SECOND 1e9
-#define ONE_SECONDS ( ((1 * (NANOSECOND_PER_SECOND))/(NANO_SEC_PER_CYCLE)) )
+#define MICROSECOND_PER_SECOND 1e6
+#define MILLISECOND_PER_SECOND 1e3
+#define ONE_SECOND ( ((1 * (NANOSECOND_PER_SECOND))/(NANO_SEC_PER_CYCLE)) )
+#define ONE_MILLISECOND ((ONE_SECOND)/(MILLISECOND_PER_SECOND))
+#define ONE_MICROSECOND ((ONE_SECOND)/(MICROSECOND_PER_SECOND))
 
 //====================
 // MSG Codes
@@ -345,16 +353,20 @@ int16_t pru_rpmsg_send (
 #define LOW(pin)  ( ((__R30) & (~pin))  )
 #define HIGH(pin) ( ((__R30) | (pin))  )
 
-#define LIMIT_SWITCH_ONE_PRESSED  "L11\n"
+#define LIMIT_SWITCH_ONE_PRESSED  "L11\n"   // Front button
 #define LIMIT_SWITCH_ONE_RELEASED "L10\n"
-#define LIMIT_SWITCH_TWO_PRESSED  "L21\n"
+#define LIMIT_SWITCH_TWO_PRESSED  "L21\n"   // Rear button
 #define LIMIT_SWITCH_TWO_RELEASED "L20\n"
 #define LS_MSG_LEN  4
 
+#define BUTTON_DEBONUCE_DELAY (5 * ONE_MILLISECOND)
+
 #define MOTOR_STOP 0
 #define MOTOR_BRAKE 1
-#define MOTOR_CW 2
-#define MOTOR_CCW 3
+#define MOTOR_CW 2                          // Drive pawl backward
+#define MOTOR_CCW 3                         // Drive pawl forward
+
+#define READ_GPIO(pin)  ((__R31) & (pin))
 //====================
 
 
@@ -404,9 +416,9 @@ void main(void) {
 	uint8_t r, g, b;
 	uint16_t srcRX, dstRX, lenRX;
     uint32_t colr;
-    unsigned int prevButState1 = 0, prevButState2 = 0, butState = 0; //TODO: use one byte and flags
+    unsigned int prevButState1 = 0, prevButState2 = 0, butState = 0;
 	int i, k=0;
-    int motorState = MOTOR_STOP, prevMotorState = MOTOR_STOP; //TODO: use a btye
+    int motorState = MOTOR_STOP, prevMotorState = MOTOR_STOP;
     int code;	// Command code or index of LED to control
     char *rest;	// rest of payload after front character is removed
 
@@ -483,7 +495,7 @@ void main(void) {
 			}
 		}
 
-        butState = __R31 & LIMIT_SWITCH_ONE;
+        butState = READ_GPIO(LIMIT_SWITCH_ONE);
 		if(butState != prevButState1) {
             prevButState1 = butState;
             if(butState) {
@@ -493,9 +505,10 @@ void main(void) {
             } else {
                 pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, LIMIT_SWITCH_ONE_RELEASED, LS_MSG_LEN);
             }
+            __delay_cycles(BUTTON_DEBONUCE_DELAY);
         }
 
-        butState = __R31 & LIMIT_SWITCH_TWO;
+        butState = READ_GPIO(LIMIT_SWITCH_TWO);
 		if(butState != prevButState2) {
             prevButState2 = butState;
             if(butState) {
@@ -505,6 +518,7 @@ void main(void) {
             } else {
                 pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, LIMIT_SWITCH_TWO_RELEASED, LS_MSG_LEN);
             }
+            __delay_cycles(BUTTON_DEBONUCE_DELAY);
         }
 
         if(motorState != prevMotorState) { // This will need to be changed if PWM is needed for motor speed. This code assumes full speed all the time.
@@ -518,12 +532,20 @@ void main(void) {
                     pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, "MB\n", 3);
                     break;
                 case MOTOR_CW:
-                    motorCw();
-                    pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, "MCw\n", 4);
+                    if(!READ_GPIO(LIMIT_SWITCH_TWO)) {
+                        motorCw();
+                        pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, "MCw\n", 4);
+                    }else{
+                        motorState = prevMotorState;  // Switch still pressed no change in state.
+                    }
                     break;
                 case MOTOR_CCW:
-                    motorCCw();
-                    pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, "MCCw\n", 5);
+                    if(!READ_GPIO(LIMIT_SWITCH_ONE)) {
+                        motorCCw();
+                        pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, "MCCw\n", 5);
+                    }else{
+                        motorState = prevMotorState;  // Switch still pressed no change in state.
+                    }
                     break;
                 default:
                     motorStop();
