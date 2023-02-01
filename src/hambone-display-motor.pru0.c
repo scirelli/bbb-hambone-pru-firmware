@@ -556,6 +556,7 @@ void main(void) {
                 default:
                     motorStop();
                     pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_UNKNOWN, 4);
+                    motorState = MOTOR_STOP;
             }
             prevMotorState = motorState;
         }
