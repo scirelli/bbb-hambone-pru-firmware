@@ -359,6 +359,12 @@ int16_t pru_rpmsg_send (
 #define LIMIT_SWITCH_TWO_RELEASED "L20\n"
 #define LS_MSG_LEN  4
 
+#define MOTOR_STATE_CCW     "MCCw\n"
+#define MOTOR_STATE_CW      "MCw\n"
+#define MOTOR_STATE_STOP    "MS\n"
+#define MOTOR_STATE_BRAKE   "MB\n"
+#define MOTOR_STATE_UNKNOWN "UNK\n"
+
 #define BUTTON_DEBONUCE_DELAY (5 * ONE_MILLISECOND)
 
 #define MOTOR_STOP 0
@@ -525,16 +531,16 @@ void main(void) {
             switch(motorState) {
                 case MOTOR_STOP:
                     motorStop();
-                    pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, "MS\n", 3);
+                    pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_STOP, 3);
                     break;
                 case MOTOR_BRAKE:
                     motorBrake();
-                    pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, "MB\n", 3);
+                    pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_BRAKE, 3);
                     break;
                 case MOTOR_CW:
                     if(!READ_GPIO(LIMIT_SWITCH_TWO)) {
                         motorCw();
-                        pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, "MCw\n", 4);
+                        pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_CW, 4);
                     }else{
                         motorState = prevMotorState;  // Switch still pressed no change in state.
                     }
@@ -542,14 +548,14 @@ void main(void) {
                 case MOTOR_CCW:
                     if(!READ_GPIO(LIMIT_SWITCH_ONE)) {
                         motorCCw();
-                        pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, "MCCw\n", 5);
+                        pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_CCW, 5);
                     }else{
                         motorState = prevMotorState;  // Switch still pressed no change in state.
                     }
                     break;
                 default:
                     motorStop();
-                    pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, "UNK\n", 4);
+                    pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_UNKNOWN, 4);
             }
             prevMotorState = motorState;
         }
