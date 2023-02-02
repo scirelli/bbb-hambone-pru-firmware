@@ -620,7 +620,7 @@ void processMotorState(void) {
                 pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_BRAKE, 3);
                 break;
             case MOTOR_CW:
-                if(!READ_GPIO(LIMIT_SWITCH_TWO)) {
+                if(!READ_GPIO(LIMIT_SWITCH_ONE)) {
                     motorCw();
                     pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_CW, 4);
                 }else{
@@ -628,7 +628,7 @@ void processMotorState(void) {
                 }
                 break;
             case MOTOR_CCW:
-                if(!READ_GPIO(LIMIT_SWITCH_ONE)) {
+                if(!READ_GPIO(LIMIT_SWITCH_TWO)) {
                     motorCCw();
                     pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_CCW, 5);
                 }else{
