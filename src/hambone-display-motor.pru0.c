@@ -664,8 +664,8 @@ void motorStop(void) {
 }
 
 void motorBrake(void) {
-    __R30 = LOW(MOTOR_A11);
-    __R30 = LOW(MOTOR_A12);
+    __R30 = HIGH(MOTOR_A11);
+    __R30 = HIGH(MOTOR_A12);
     __R30 = HIGH(MOTOR_PWM);
 }
 
