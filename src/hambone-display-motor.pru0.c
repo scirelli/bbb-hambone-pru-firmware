@@ -384,6 +384,7 @@ volatile register uint32_t __R31;
 volatile unsigned int *pru0_dram = (unsigned int *) (PRU0_DRAM + 0x200);
 
 char payloadRX[RPMSG_BUF_SIZE];
+struct pru_rpmsg_transport transport;
 
 //====================
 // NeoPixel Globals
@@ -422,7 +423,6 @@ void processMotorState(void);
  * main.c
 */
 void main(void) {
-	struct pru_rpmsg_transport transport;
 	volatile uint8_t *status;
 	uint8_t r, g, b;
 	uint16_t srcRX, dstRX, lenRX;
