@@ -407,10 +407,15 @@ int8_t convergeFactor(uint8_t a, uint8_t b);
 //======================
 // Motor Driver Globals
 //======================
+unsigned int prevButState1 = 0, prevButState2 = 0, butState = 0;
+int motorState = MOTOR_STOP, prevMotorState = MOTOR_STOP;
+
 void motorCCw(/*double dutyCycle*/ void);
 void motorCw(/*double dutyCycle*/ void);
 void motorBrake(void);
 void motorStop(void);
+void processButtonStates(void);
+void processMotorState(void);
 //======================
 
 /*
@@ -422,9 +427,7 @@ void main(void) {
 	uint8_t r, g, b;
 	uint16_t srcRX, dstRX, lenRX;
     uint32_t colr;
-    unsigned int prevButState1 = 0, prevButState2 = 0, butState = 0;
 	int i, k=0;
-    int motorState = MOTOR_STOP, prevMotorState = MOTOR_STOP;
     int code;	// Command code or index of LED to control
     char *rest;	// rest of payload after front character is removed
 
@@ -498,69 +501,13 @@ void main(void) {
                         }
                     }
                 }
+                processButtonStates();
+                processMotorState();
 			}
 		}
 
-        butState = READ_GPIO(LIMIT_SWITCH_ONE);
-		if(butState != prevButState1) {
-            prevButState1 = butState;
-            if(butState) {
-                motorBrake();
-                motorState = MOTOR_BRAKE;
-                pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, LIMIT_SWITCH_ONE_PRESSED, LS_MSG_LEN);
-            } else {
-                pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, LIMIT_SWITCH_ONE_RELEASED, LS_MSG_LEN);
-            }
-            __delay_cycles(BUTTON_DEBONUCE_DELAY);
-        }
-
-        butState = READ_GPIO(LIMIT_SWITCH_TWO);
-		if(butState != prevButState2) {
-            prevButState2 = butState;
-            if(butState) {
-                motorBrake();
-                motorState = MOTOR_BRAKE;
-                pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, LIMIT_SWITCH_TWO_PRESSED, LS_MSG_LEN);
-            } else {
-                pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, LIMIT_SWITCH_TWO_RELEASED, LS_MSG_LEN);
-            }
-            __delay_cycles(BUTTON_DEBONUCE_DELAY);
-        }
-
-        if(motorState != prevMotorState) { // This will need to be changed if PWM is needed for motor speed. This code assumes full speed all the time.
-            switch(motorState) {
-                case MOTOR_STOP:
-                    motorStop();
-                    pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_STOP, 3);
-                    break;
-                case MOTOR_BRAKE:
-                    motorBrake();
-                    pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_BRAKE, 3);
-                    break;
-                case MOTOR_CW:
-                    if(!READ_GPIO(LIMIT_SWITCH_TWO)) {
-                        motorCw();
-                        pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_CW, 4);
-                    }else{
-                        motorState = prevMotorState;  // Switch still pressed no change in state.
-                    }
-                    break;
-                case MOTOR_CCW:
-                    if(!READ_GPIO(LIMIT_SWITCH_ONE)) {
-                        motorCCw();
-                        pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_CCW, 5);
-                    }else{
-                        motorState = prevMotorState;  // Switch still pressed no change in state.
-                    }
-                    break;
-                default:
-                    motorStop();
-                    pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_UNKNOWN, 4);
-                    motorState = MOTOR_STOP;
-                    pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_STOP, 3);
-            }
-            prevMotorState = motorState;
-        }
+        processButtonStates();
+        processMotorState();
 	}
 }
 
@@ -631,6 +578,71 @@ int8_t convergeFactor(uint8_t a, uint8_t b) {
    if(dif > FADE_SPEED) return FADE_SPEED;
    if(dif < -FADE_SPEED) return -FADE_SPEED;
    return dif;
+}
+
+void processButtonStates(void) {
+    butState = READ_GPIO(LIMIT_SWITCH_ONE);
+    if(butState != prevButState1) {
+        prevButState1 = butState;
+        if(butState) {
+            motorBrake();
+            motorState = MOTOR_BRAKE;
+            pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, LIMIT_SWITCH_ONE_PRESSED, LS_MSG_LEN);
+        } else {
+            pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, LIMIT_SWITCH_ONE_RELEASED, LS_MSG_LEN);
+        }
+        __delay_cycles(BUTTON_DEBONUCE_DELAY);
+    }
+
+    butState = READ_GPIO(LIMIT_SWITCH_TWO);
+    if(butState != prevButState2) {
+        prevButState2 = butState;
+        if(butState) {
+            motorBrake();
+            motorState = MOTOR_BRAKE;
+            pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, LIMIT_SWITCH_TWO_PRESSED, LS_MSG_LEN);
+        } else {
+            pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, LIMIT_SWITCH_TWO_RELEASED, LS_MSG_LEN);
+        }
+        __delay_cycles(BUTTON_DEBONUCE_DELAY);
+    }
+}
+
+void processMotorState(void) {
+    if(motorState != prevMotorState) { // This will need to be changed if PWM is needed for motor speed. This code assumes full speed all the time.
+        switch(motorState) {
+            case MOTOR_STOP:
+                motorStop();
+                pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_STOP, 3);
+                break;
+            case MOTOR_BRAKE:
+                motorBrake();
+                pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_BRAKE, 3);
+                break;
+            case MOTOR_CW:
+                if(!READ_GPIO(LIMIT_SWITCH_TWO)) {
+                    motorCw();
+                    pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_CW, 4);
+                }else{
+                    motorState = prevMotorState;  // Switch still pressed no change in state.
+                }
+                break;
+            case MOTOR_CCW:
+                if(!READ_GPIO(LIMIT_SWITCH_ONE)) {
+                    motorCCw();
+                    pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_CCW, 5);
+                }else{
+                    motorState = prevMotorState;  // Switch still pressed no change in state.
+                }
+                break;
+            default:
+                motorStop();
+                pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_UNKNOWN, 4);
+                motorState = MOTOR_STOP;
+                pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_STOP, 3);
+        }
+        prevMotorState = motorState;
+    }
 }
 
 void motorCCw(/*double dutyCycle*/ void) {
