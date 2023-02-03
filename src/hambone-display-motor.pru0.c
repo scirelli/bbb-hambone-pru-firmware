@@ -657,7 +657,7 @@ void notifiyStateChanges(void) {
 void motorCCw(/*double dutyCycle*/ void) {
     __R30 = LOW(MOTOR_A11);
     __R30 = HIGH(MOTOR_A12);
-    if(IS_PRESSED(LIMIT_SWITCH_ONE)){
+    if(IS_PRESSED(LIMIT_SWITCH_TWO)){
         __R30 = LOW(MOTOR_PWM);
     }else{
         __R30 = HIGH(MOTOR_PWM);
@@ -667,7 +667,7 @@ void motorCCw(/*double dutyCycle*/ void) {
 void motorCw(/*double dutyCycle*/ void){
     __R30 = HIGH(MOTOR_A11);
     __R30 = LOW(MOTOR_A12);
-    if(IS_PRESSED(LIMIT_SWITCH_TWO)) {
+    if(IS_PRESSED(LIMIT_SWITCH_ONE)) {
         __R30 = LOW(MOTOR_PWM);
     }else{
         __R30 = HIGH(MOTOR_PWM);
