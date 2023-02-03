@@ -416,8 +416,10 @@ void motorCCw(/*double dutyCycle*/ void);
 void motorCw(/*double dutyCycle*/ void);
 void motorBrake(void);
 void motorStop(void);
-void processButtonStates(void);
 void processMotorState(void);
+void notifyButtonStateChange(void);
+void notifiyMotorStateChange(void);
+void notifiyStateChanges(void);
 //======================
 
 /*
@@ -502,13 +504,13 @@ void main(void) {
                         }
                     }
                 }
-                processButtonStates();
                 processMotorState();
+                notifiyStateChanges();
 			}
 		}
 
-        processButtonStates();
         processMotorState();
+        notifiyStateChanges();
 	}
 }
 
@@ -581,7 +583,27 @@ int8_t convergeFactor(uint8_t a, uint8_t b) {
    return dif;
 }
 
-void processButtonStates(void) {
+void processMotorState(void) {
+    switch(motorState) {
+        case MOTOR_STOP:
+            motorStop();
+            break;
+        case MOTOR_BRAKE:
+            motorBrake();
+            break;
+        case MOTOR_CW:
+            motorCw();
+            break;
+        case MOTOR_CCW:
+            motorCCw();
+            break;
+        default:
+            motorStop();
+            motorState = MOTOR_STOP;
+    }
+}
+
+void notifyButtonStateChange(void) {
     butState = READ_GPIO(LIMIT_SWITCH_ONE);
     if(butState != prevButState1) {
         prevButState1 = butState;
@@ -605,33 +627,31 @@ void processButtonStates(void) {
     }
 }
 
-void processMotorState(void) {
-    if(motorState != prevMotorState) { // This will need to be changed if PWM is needed for motor speed. This code assumes full speed all the time.
+void notifiyMotorStateChange(){
+    if(motorState != prevMotorState) {
         switch(motorState) {
             case MOTOR_STOP:
-                motorStop();
                 pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_STOP, 3);
                 break;
             case MOTOR_BRAKE:
-                motorBrake();
                 pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_BRAKE, 3);
                 break;
             case MOTOR_CW:
-                motorCw();
                 pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_CW, 4);
                 break;
             case MOTOR_CCW:
-                motorCCw();
                 pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_CCW, 5);
                 break;
             default:
-                motorStop();
                 pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_UNKNOWN, 4);
-                motorState = MOTOR_STOP;
-                pru_rpmsg_send(&transport, TX_SRC_ADDR, TX_DST_ADDR, MOTOR_STATE_STOP, 3);
         }
         prevMotorState = motorState;
     }
+}
+
+void notifiyStateChanges(void) {
+    notifyButtonStateChange();
+    notifiyMotorStateChange();
 }
 
 void motorCCw(/*double dutyCycle*/ void) {
