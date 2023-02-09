@@ -341,6 +341,7 @@ int16_t pru_rpmsg_send (
 #define START 0                 // Segment begin index
 #define END 1                   // Segment end index
 
+#define NEOPIXEL_OUT P9_29
 //====================
 // Motor Driver
 //====================
