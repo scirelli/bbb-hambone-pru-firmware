@@ -374,12 +374,14 @@ int16_t pru_rpmsg_send (
 #define MOTOR_CCW 3                         // Drive pawl forward
 
 #define READ_GPIO(pin)  ((__R31) & (pin))
-#define IS_PRESSED(pin) ( (__R31) & (pin) )
+//#define IS_PRESSED(pin) ( (__R31) & (pin) )
+#define IS_PRESSED(pin) ( (~((__R31) & (pin))) )
 //====================
 
-
-volatile register uint32_t __R30;
-volatile register uint32_t __R31;
+// The PRU can directly toggle a subset of the BeagleBone's GPIO pins in a single cycle by manipulating bits in register #30.
+// That register is exposed in C as __R30
+volatile register uint32_t __R30;  // Output register
+volatile register uint32_t __R31;  // Input register
 
 // Skip the first 0x200 byte of DRAM since the Makefile allocates
 // 0x100 for the STACK and 0x100 for the HEAP.
@@ -387,6 +389,12 @@ volatile unsigned int *pru0_dram = (unsigned int *) (PRU0_DRAM + 0x200);
 
 char payloadRX[RPMSG_BUF_SIZE];
 struct pru_rpmsg_transport transport;
+
+//====================
+// Common Globals
+//====================
+void setupPins(void);
+//====================
 
 //====================
 // NeoPixel Globals
@@ -435,6 +443,7 @@ void main(void) {
     int code;	// Command code or index of LED to control
     char *rest;	// rest of payload after front character is removed
 
+    setupPins();
     initColors();
     motorStop();
 
@@ -512,10 +521,16 @@ void main(void) {
 
         processMotorState();
         notifiyStateChanges();
+        HIGH(LIMIT_SWITCH_ONE);
 	}
 }
 
-void initColors(void){
+void setupPins(void) {
+    HIGH(LIMIT_SWITCH_ONE);
+    HIGH(LIMIT_SWITCH_TWO);
+}
+
+void initColors(void) {
     int i;
 	// Set everything to background
 	for(i=0; i<STR_LEN; i++) {
@@ -523,7 +538,7 @@ void initColors(void){
 	}
 }
 
-void drawToLEDs(void){
+void drawToLEDs(void) {
 	// Select which pins to output to.  These are all on pru1_1
 	uint32_t gpio = P9_29;
     int i, j;
@@ -689,11 +704,11 @@ void motorBrake(void) {
 #pragma DATA_SECTION(init_pins, ".init_pins")
 #pragma RETAIN(init_pins)
 const char init_pins[] =
-	"/sys/class/leds/beaglebone:green:usr3/trigger\0none\0" \
-	"/sys/devices/platform/ocp/ocp:P9_25_pinmux/state\0pruin\0" \
-	"/sys/devices/platform/ocp/ocp:P9_27_pinmux/state\0pruin\0" \
+    "/sys/class/leds/beaglebone:green:usr3/trigger\0none\0" \
+    "/sys/devices/platform/ocp/ocp:P9_25_pinmux/state\0pruin\0" \
+    "/sys/devices/platform/ocp/ocp:P9_27_pinmux/state\0pruin\0" \
     "/sys/devices/platform/ocp/ocp:P9_28_pinmux/state\0pruout\0" \
     "/sys/devices/platform/ocp/ocp:P9_29_pinmux/state\0pruout\0" \
     "/sys/devices/platform/ocp/ocp:P9_30_pinmux/state\0pruout\0" \
     "/sys/devices/platform/ocp/ocp:P9_31_pinmux/state\0pruout\0" \
-	"\0\0";
+    "\0\0";
